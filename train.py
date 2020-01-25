@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 
 from torchsummary import summary
+import torch
+import numpy as np
 from loader import Dataset
 from colorizer import Colorizer
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 CROP_SIZE = 400
-EPOCHS = 2
+EPOCHS = 5
 MODEL_SAVE_PATH = 'colorizer.pth'
 
 class Trainer:
-    def __init__():
-        self.train_set = self.laod_dataset('data/train')
-        self.val_set = self.laod_dataset('data/val')
+    def __init__(self):
+        self.train_set = self.load_dataset('data/train')
+        self.val_set = self.load_dataset('data/val')
         self.model = Colorizer().cuda()
 
     def load_dataset(self, path):
@@ -41,26 +43,34 @@ class Trainer:
         self.model.train()
 
         for num, batch in enumerate(self.train_set):
-            self.model.optimie_parameters(batch)
-            log = f'Train Epoch: [{epoch}/{EPOCHS}] ' +
-                  f'Batch: [{num+1}/{batch_num}] ' +
-                  f'Loss: {loss:.6f}'
+            loss_G, loss_D = self.model.optimize_parameters(batch)
+            log = f'Train Epoch: [{epoch}/{EPOCHS}] ' + \
+                  f'Batch: [{num+1}/{batch_num}] ' + \
+                  f'Loss G: {loss_G:.6f} ' + \
+                  f'Loss D: {loss_D:.6f}' 
             print(log)
             f.write(log)
 
     def validate_single_epoch(self, epoch, f):
-        batch_num = len(self.valid_set)      # number of batches in training epoch
+        batch_num = len(self.val_set)      # number of batches in training epoch
         self.model.eval()
         losses = []
 
         with torch.no_grad():
-            for num, batch in enumerate(self.valid_set):
+            for num, batch in enumerate(self.val_set):
                 loss = self.model.validate_G(batch)
                 losses.append(loss.item())
-                log = f'Validate Epoch: [{epoch}/{EPOCHS}] ' +
-                      f'Batch: [{num+1}/{batch_num}] ' +
+                log = f'Validate Epoch: [{epoch}/{EPOCHS}] ' + \
+                      f'Batch: [{num+1}/{batch_num}] ' + \
                       f'Loss: {loss:.6f}'
                 print(log)
                 f.write(log)
         return np.mean(np.array(losses))
 
+
+def main():
+    t = Trainer()
+    t.train()
+
+if __name__ == '__main__':
+    main()

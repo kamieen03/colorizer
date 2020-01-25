@@ -20,11 +20,15 @@ class Dataset(data.Dataset):
         if not test:
             self.transform = transforms.Compose([
                                  transforms.Resize(fineSize),
-                                 transforms.RandomHorizontalFlip()
+                                 transforms.RandomCrop(fineSize),
+                                 transforms.RandomHorizontalFlip(),
+                                 transforms.ToTensor()
                              ])
         else:
             self.transform = transforms.Compose([
-                                 transforms.Resize(fineSize)
+                                 transforms.Resize(fineSize),
+                                 transforms.RandomCrop(fineSize),
+                                 transforms.ToTensor()
                              ])
 
         self.test = test
@@ -35,7 +39,7 @@ class Dataset(data.Dataset):
         Img = default_loader(dataPath)
         Img = self.transform(Img)
 
-        return ImgA
+        return Img
 
     def __len__(self):
         return len(self.image_list)

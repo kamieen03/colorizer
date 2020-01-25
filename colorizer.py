@@ -1,20 +1,21 @@
 import torch
 import cv2
+import numpy as np
 
 from generator import UNet
 from discriminator import PatchDiscriminator
 
-class Colorizer(nn.Model):
+class Colorizer(torch.nn.Module):
     def __init__(self, TRAIN=True):
         super(Colorizer, self).__init__()
-        # define networks (both generator and discriminator)
         self.netG = UNet()
+        self.lambda_L1 = 100
 
         if TRAIN:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
             self.netD = PatchDiscriminator()
 
             # define loss functions
-            self.criterionGAN = GANLoss.cuda()
+            self.criterionGAN = GANLoss().cuda()
             self.criterionL1 = torch.nn.L1Loss().cuda()
             # and optimizers
             self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-4, momentum=0.9)
@@ -26,48 +27,53 @@ class Colorizer(nn.Model):
 
     def backward_D(self, A, B, fake_b):
         # Fake; stop backprop to the generator by detaching fake_B
-        fake_AB = torch.cat((A, fake_B), 1)
+        fake_AB = torch.cat((A, fake_b), 1)
         pred_fake = self.netD(fake_AB.detach())
-        self.loss_D_fake = self.criterionGAN(pred_fake, False)
+        loss_D_fake = self.criterionGAN(pred_fake, False)
         # Real
         real_AB = torch.cat((A, B), 1)
         pred_real = self.netD(real_AB)
-        self.loss_D_real = self.criterionGAN(pred_real, True)
+        loss_D_real = self.criterionGAN(pred_real, True)
         # combine loss and calculate gradients
-        self.loss_D = (self.loss_D_fake + self.loss_D_real) / 2.0
-        self.loss_D.backward()
+        loss_D = (loss_D_fake + loss_D_real) / 2.0
+        loss_D.backward()
+        return loss_D
 
     def backward_G(self, A, B, fake_b):
         """Calculate GAN and L1 loss for the generator"""
         # First, G(A) should fake the discriminator
         fake_AB = torch.cat((A, fake_b), 1)
         pred_fake = self.netD(fake_AB)
-        self.loss_G_GAN = self.criterionGAN(pred_fake, True)
+        loss_G_GAN = self.criterionGAN(pred_fake, True)
         # Second, G(A) = B
-        self.loss_G_L1 = self.criterionL1(B, fake_b) * self.lambda_L1
+        loss_G_L1 = self.criterionL1(B, fake_b) * self.lambda_L1
         # combine loss and calculate gradients
-        self.loss_G = self.loss_G_GAN + self.loss_G_L1
-        self.loss_G.backward()
+        loss_G = loss_G_GAN + loss_G_L1
+        loss_G.backward()
+        return loss_G
 
     def optimize_parameters(self, batch):
         B = self.rgb2Lab(batch).cuda()
         A = B[:,:1,:,:].clone()
         fake_b = self.forward(A)                   # compute fake images: G(A)
         # update D
-        self.set_requires_grad(self.netD, True)  # enable backprop for D
+        for param in self.netD.parameters():
+            param.requires_grad = True
         self.optimizer_D.zero_grad()     # set D's gradients to zero
-        self.backward_D(A, B, fake_b)                # calculate gradients for D
+        loss_D = self.backward_D(A, B, fake_b)                # calculate gradients for D
         self.optimizer_D.step()          # update D's weights
         # update G
-        self.set_requires_grad(self.netD, False)  # D requires no gradients when optimizing G
+        for param in self.netD.parameters():
+            param.requires_grad = False
         self.optimizer_G.zero_grad()        # set G's gradients to zero
-        self.backward_G(A, B, fake_b)                   # calculate graidents for G
+        loss_G = self.backward_G(A, B, fake_b)                   # calculate graidents for G
         self.optimizer_G.step()             # udpate G's weights
+        return loss_G, loss_D
 
 
     def validate_G(self, batch):
         """Calculate GAN and L1 loss for the generator"""
-        B = self.rgb2Lab(batch)
+        B = self.rgb2Lab(batch).cuda()
         A = B[:,:1,:,:]
         fake_b = self.forward(A)                   # compute fake images: G(A)
 
@@ -79,12 +85,13 @@ class Colorizer(nn.Model):
         # combine loss and calculate gradients
         return self.loss_G_GAN + self.loss_G_L1
 
-    def rgb2Lab(batch):
+    def rgb2Lab(self, batch):
         '''
-        Accepts np array in uint8 RGB BxHxWxC format.
+        Accepts torch tensor in float32 RGB BxCxHxW format.
         Returns torch tensor in float32 Lab BxCxHxW format.
         '''
 
+        batch = batch.numpy().transpose(0, 2, 3, 1)
         b, h, w, c = batch.shape
         assert c == 3
         Lab_batch = np.zeros((b, h, w, 3))
@@ -93,11 +100,13 @@ class Colorizer(nn.Model):
             Lab_batch[i] = cv2.cvtColor(batch[i], cv2.COLOR_RGB2LAB)
         Lab_batch = Lab_batch.transpose(0,3,1,2)
         assert Lab_batch.shape[1] == 3
-        Lab_batch = torch.from_numpy(Lab_batch) / 255.0 #implicit coversion uint8 -> float32
+
+        Lab_batch = torch.from_numpy(Lab_batch) / 255.0
+        Lab_batch = Lab_batch.float()
 
         return Lab_batch
 
-    def Lab2rgb(img):
+    def Lab2rgb(self, img):
         '''
         Accepts torch tensor in float32 Lab CxHxW format.
         Returns np array in uint8 RGB HxWxC format. 
@@ -110,12 +119,17 @@ class Colorizer(nn.Model):
 class GANLoss(torch.nn.Module):
     def __init__(self):
         super(GANLoss, self).__init__()
-        self.loss = torch.nnBCEWithLogitsLoss()
+        self.loss = torch.nn.BCEWithLogitsLoss()
+        self.target_set = False
 
     def __call__(self, prediction, target_is_real):
+        if not self.target_set:
+            self.target_set = True
+            self.target_ones = torch.ones(prediction.shape).cuda()
+            self.target_zeros = torch.ones(prediction.shape).cuda()
         if target_is_real:
-            target_tensor = torch.ones(prediction.shape)
+            target_tensor = self.target_ones
         else:
-            target_tensor = torch.zeros(prediction.shape)
+            target_tensor = self.target_zeros
         return self.loss(prediction, target_tensor)
 
