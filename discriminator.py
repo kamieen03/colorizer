@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class PatchDiscriminator(nn.Module):
-    def __init__(self, n=6, batch_norm=False, dropout=False):
+    def __init__(self, n=6, batch_norm=True, dropout=False):
         super(PatchDiscriminator, self).__init__()
         self.batch_norm = batch_norm
         self.dropout = dropout
@@ -22,6 +22,7 @@ class PatchDiscriminator(nn.Module):
             inc = outc
             outc *= 2
         layers.append(nn.Conv2d(inc, inc, kernel_size=4, stride=2, padding=1))
+        layers.append(nn.Conv2d(inc, 1, kernel_size=4, stride=1, padding=1))
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):

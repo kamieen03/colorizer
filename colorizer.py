@@ -47,6 +47,7 @@ class Colorizer(torch.nn.Module):
         loss_G_GAN = self.criterionGAN(pred_fake, True)
         # Second, G(A) = B
         loss_G_L1 = self.criterionL1(B, fake_b) * self.lambda_L1
+        print(B[:,1,:,:].mean(), fake_b[:,1,:,:].mean())
         # combine loss and calculate gradients
         loss_G = loss_G_GAN + loss_G_L1
         loss_G.backward()
@@ -76,6 +77,7 @@ class Colorizer(torch.nn.Module):
         B = self.rgb2Lab(batch).cuda()
         A = B[:,:1,:,:]
         fake_b = self.forward(A)                   # compute fake images: G(A)
+        print(fake_b[:,1,:,:].mean())
 
         fake_AB = torch.cat((A, fake_b), 1)
         pred_fake = self.netD(fake_AB)
