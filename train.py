@@ -6,9 +6,9 @@ import numpy as np
 from loader import Dataset
 from colorizer import Colorizer
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 CROP_SIZE = 400
-EPOCHS = 5
+EPOCHS = 50
 MODEL_SAVE_PATH = 'colorizer.pth'
 
 class Trainer:
@@ -33,9 +33,8 @@ class Trainer:
             for epoch in range(1, EPOCHS+1): # count from one
                 self.train_single_epoch(epoch, f)
                 val = self.validate_single_epoch(epoch, f)
-                if val < best_val:
-                    best_val = val
-                    torch.save(self.model.state_dict(), MODEL_SAVE_PATH)
+                best_val = val
+                torch.save(self.model.state_dict(), MODEL_SAVE_PATH)
 
 
     def train_single_epoch(self, epoch, f):
@@ -49,7 +48,7 @@ class Trainer:
                   f'Loss G: {loss_G:.6f} ' + \
                   f'Loss D: {loss_D:.6f}' 
             print(log)
-            f.write(log)
+            f.write(log+'\n')
 
     def validate_single_epoch(self, epoch, f):
         batch_num = len(self.val_set)      # number of batches in training epoch
@@ -64,7 +63,7 @@ class Trainer:
                       f'Batch: [{num+1}/{batch_num}] ' + \
                       f'Loss: {loss:.6f}'
                 print(log)
-                f.write(log)
+                f.write(log+'\n')
         return np.mean(np.array(losses))
 
 
