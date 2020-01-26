@@ -39,10 +39,10 @@ class Down(nn.Module):
         self.dropout = dropout
 
         self.conv1 = nn.Conv2d(inc, outc, kernel_size=3, padding=1, stride=1)
-        self.norm1 = nn.InstanceNorm2d(outc)
+        self.norm1 = nn.BatchNorm2d(outc)
         self.r1 = nn.LeakyReLU(0.2, True)
         self.conv2 = nn.Conv2d(outc, outc, kernel_size=3, padding=1, stride=2)
-        self.norm2 = nn.InstanceNorm2d(outc)
+        self.norm2 = nn.BatchNorm2d(outc)
         self.r2 = nn.LeakyReLU(0.2, True)
         
     def forward(self, x):
@@ -66,10 +66,10 @@ class Up(nn.Module):
         self.up = nn.ConvTranspose2d(inc // 2, inc // 2, kernel_size=3, stride=2)
 
         self.conv1 = nn.Conv2d(inc, outc, kernel_size=3, padding=1, stride=1)
-        self.norm1 = nn.InstanceNorm2d(outc)
+        self.norm1 = nn.BatchNorm2d(outc)
         self.r1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(outc, outc, kernel_size=3, padding=1, stride=1)
-        self.norm2 = nn.InstanceNorm2d(outc)
+        self.norm2 = nn.BatchNorm2d(outc)
         self.r2 = nn.ReLU(inplace=True)
 
     def forward(self, x1, x2):
@@ -107,10 +107,10 @@ class SingleUp(nn.Module):
         self.up = nn.Upsample(scale_factor=2, mode='bilinear')
 
         self.conv1 = nn.Conv2d(inc, outc, kernel_size=3, padding=1, stride=1)
-        self.norm1 = nn.InstanceNorm2d(outc)
+        self.norm1 = nn.BatchNorm2d(outc)
         self.r1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(outc, outc, kernel_size=3, padding=1, stride=1)
-        self.norm2 = nn.InstanceNorm2d(outc)
+        self.norm2 = nn.BatchNorm2d(outc)
         self.r2 = nn.ReLU(inplace=True)
 
     def forward(self, x):
