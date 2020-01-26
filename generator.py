@@ -5,7 +5,7 @@ import torch.nn.functional as F
 class UNet(nn.Module):
     def __init__(self, nfc=32):
         super(UNet, self).__init__()
-        self.batch_norm = False
+        self.batch_norm = True
         self.dropout = False
 
         self.down1 = Down(1, 1*nfc, self.batch_norm, self.dropout)
@@ -40,10 +40,10 @@ class Down(nn.Module):
 
         self.conv1 = nn.Conv2d(inc, outc, kernel_size=3, padding=1, stride=1)
         self.bn1 = nn.BatchNorm2d(outc)
-        self.r1 = nn.ReLU(inplace=True)
+        self.r1 = nn.LeakyReLU(0.2, True)
         self.conv2 = nn.Conv2d(outc, outc, kernel_size=3, padding=1, stride=2)
         self.bn2 = nn.BatchNorm2d(outc)
-        self.r2 = nn.ReLU(inplace=True)
+        self.r2 = nn.LeakyReLU(0.2, True)
         
     def forward(self, x):
         x = self.conv1(x)

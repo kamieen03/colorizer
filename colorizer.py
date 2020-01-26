@@ -18,8 +18,8 @@ class Colorizer(torch.nn.Module):
             self.criterionGAN = GANLoss().cuda()
             self.criterionL1 = torch.nn.L1Loss().cuda()
             # and optimizers
-            self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
-            self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
+            self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-4, momentum=0.9)
+            self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-4, momentum=0.9)
 
 
     def forward(self, A):
@@ -47,6 +47,7 @@ class Colorizer(torch.nn.Module):
         loss_G_GAN = self.criterionGAN(pred_fake, True)
         # Second, G(A) = B
         loss_G_L1 = self.criterionL1(B, fake_b) * self.lambda_L1
+        print(B[:,1,:,:].mean(), fake_b[:,1,:,:].mean())
         # combine loss and calculate gradients
         loss_G = loss_G_GAN + loss_G_L1
         loss_G.backward()
@@ -76,6 +77,7 @@ class Colorizer(torch.nn.Module):
         B = self.rgb2Lab(batch).cuda()
         A = B[:,:1,:,:]
         fake_b = self.forward(A)                   # compute fake images: G(A)
+        print(fake_b[:,1,:,:].mean())
 
         fake_AB = torch.cat((A, fake_b), 1)
         pred_fake = self.netD(fake_AB)
@@ -100,7 +102,9 @@ class Colorizer(torch.nn.Module):
             Lab_batch[i] = cv2.cvtColor(batch[i], cv2.COLOR_RGB2LAB)
         Lab_batch = Lab_batch.transpose(0,3,1,2)
         assert Lab_batch.shape[1] == 3
-
+        print(Lab_batch[0][0].mean())
+        print(Lab_batch[0][2].mean())
+        print(Lab_batch[0][1].mean())
         Lab_batch = torch.from_numpy(Lab_batch) / 255.0
         Lab_batch = Lab_batch.float()
 

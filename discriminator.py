@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class PatchDiscriminator(nn.Module):
-    def __init__(self, n=6, batch_norm=False, dropout=False):
+    def __init__(self, n=6, batch_norm=True, dropout=False):
         super(PatchDiscriminator, self).__init__()
         self.batch_norm = batch_norm
         self.dropout = dropout
