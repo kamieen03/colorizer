@@ -13,11 +13,11 @@ class PatchDiscriminator(nn.Module):
         for _ in range(n-1):
             layers.append(nn.Conv2d(inc, outc, kernel_size=4, stride=2, padding=1))
             if self.batch_norm:
-                layers.append(nn.BatchNorm2d(outc))
+                layers.append(nn.InstanceNorm2d(outc))
             layers.append(nn.LeakyReLU(0.2, True))
             layers.append(nn.Conv2d(outc, outc, kernel_size=3, stride=1, padding=1))
             if self.batch_norm:
-                layers.append(nn.BatchNorm2d(outc))
+                layers.append(nn.InstanceNorm2d(outc))
             layers.append(nn.LeakyReLU(0.2, True))
             inc = outc
             outc *= 2

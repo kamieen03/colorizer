@@ -18,8 +18,10 @@ class Colorizer(torch.nn.Module):
             self.criterionGAN = GANLoss().cuda()
             self.criterionL1 = torch.nn.L1Loss().cuda()
             # and optimizers
-            self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
-            self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
+            #self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
+            #self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
+            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
+            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
 
 
     def forward(self, A):
