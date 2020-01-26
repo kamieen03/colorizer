@@ -102,9 +102,6 @@ class Colorizer(torch.nn.Module):
             Lab_batch[i] = cv2.cvtColor(batch[i], cv2.COLOR_RGB2LAB)
         Lab_batch = Lab_batch.transpose(0,3,1,2)
         assert Lab_batch.shape[1] == 3
-        print(Lab_batch[0][0].mean())
-        print(Lab_batch[0][2].mean())
-        print(Lab_batch[0][1].mean())
         Lab_batch = torch.from_numpy(Lab_batch) / 255.0
         Lab_batch = Lab_batch.float()
 
