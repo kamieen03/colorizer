@@ -18,8 +18,8 @@ class Colorizer(torch.nn.Module):
             self.criterionGAN = GANLoss().cuda()
             self.criterionL1 = torch.nn.L1Loss().cuda()
             # and optimizers
-            self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-4, momentum=0.9)
-            self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-4, momentum=0.9)
+            self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
+            self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
 
 
     def forward(self, A):
@@ -92,16 +92,20 @@ class Colorizer(torch.nn.Module):
         Accepts torch tensor in float32 RGB BxCxHxW format.
         Returns torch tensor in float32 Lab BxCxHxW format.
         '''
+        if len(batch.shape) == 4:
+            batch = batch.numpy().transpose(0, 2, 3, 1)
+            b, h, w, c = batch.shape
+            assert c == 3
+            Lab_batch = np.zeros((b, h, w, 3))
 
-        batch = batch.numpy().transpose(0, 2, 3, 1)
-        b, h, w, c = batch.shape
-        assert c == 3
-        Lab_batch = np.zeros((b, h, w, 3))
+            for i in range(b):
+                Lab_batch[i] = cv2.cvtColor(batch[i], cv2.COLOR_RGB2LAB)
+            Lab_batch = Lab_batch.transpose(0,3,1,2)
+            assert Lab_batch.shape[1] == 3
+        else:
+            Lab_batch = cv2.cvtColor(batch, cv2.COLOR_RGB2LAB)
+            Lab_batch = Lab_batch.transpose(2,0,1)
 
-        for i in range(b):
-            Lab_batch[i] = cv2.cvtColor(batch[i], cv2.COLOR_RGB2LAB)
-        Lab_batch = Lab_batch.transpose(0,3,1,2)
-        assert Lab_batch.shape[1] == 3
         Lab_batch = torch.from_numpy(Lab_batch) / 255.0
         Lab_batch = Lab_batch.float()
 
@@ -112,9 +116,11 @@ class Colorizer(torch.nn.Module):
         Accepts torch tensor in float32 Lab CxHxW format.
         Returns np array in uint8 RGB HxWxC format. 
         '''
-        img = img.transpose(1,2,0) * 255
+        img = img[0].numpy()*255
+        print(img.mean())
+        img = img.transpose(1,2,0)
+        img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
         img = img.astype('uint8')
-        img = cv2.cvtColor(img, cv2.LAB2RGB)
         return img
 
 class GANLoss(torch.nn.Module):
