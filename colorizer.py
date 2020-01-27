@@ -1,6 +1,7 @@
 import torch
 import cv2
 import numpy as np
+from torchsummary import summary
 
 from generator import UNet
 from discriminator import PatchDiscriminator
@@ -22,6 +23,9 @@ class Colorizer(torch.nn.Module):
             self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
             #self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
             #self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
+
+            summary(self.netG, (1,400,400))
+            summary(self.netD, (3,400,400))
 
 
     def forward(self, A):
@@ -49,7 +53,6 @@ class Colorizer(torch.nn.Module):
         loss_G_GAN = self.criterionGAN(pred_fake, True)
         # Second, G(A) = B
         loss_G_L1 = self.criterionL1(B, fake_b) * self.lambda_L1
-        #print(B[:,1,:,:].mean(), fake_b[:,1,:,:].mean())
         # combine loss and calculate gradients
         loss_G = loss_G_GAN + loss_G_L1
         loss_G.backward()
@@ -79,7 +82,6 @@ class Colorizer(torch.nn.Module):
         B = self.rgb2Lab(batch).cuda()
         A = B[:,:1,:,:]
         fake_b = self.forward(A)                   # compute fake images: G(A)
-        print(fake_b[:,1,:,:].mean())
 
         fake_AB = torch.cat((A, fake_b), 1)
         pred_fake = self.netD(fake_AB)
@@ -119,9 +121,9 @@ class Colorizer(torch.nn.Module):
         Returns np array in uint8 RGB HxWxC format. 
         '''
         img = img[0].numpy()*255
-        print(img.mean())
         img = img.transpose(1,2,0)
         img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
+        img = img * 255
         img = img.astype('uint8')
         return img
 

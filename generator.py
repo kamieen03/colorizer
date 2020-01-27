@@ -111,7 +111,7 @@ class SingleUp(nn.Module):
         self.r1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(outc, outc, kernel_size=3, padding=1, stride=1)
         self.norm2 = nn.BatchNorm2d(outc)
-        self.r2 = nn.ReLU(inplace=True)
+        self.tanh = nn.Tanh()
 
     def forward(self, x):
         x = self.up(x)
@@ -120,7 +120,5 @@ class SingleUp(nn.Module):
             x = self.norm1(x)
         x = self.r1(x)
         x = self.conv2(x)
-        if self.norm:
-            x = self.norm2(x)
-        x = self.r2(x)
+        x = self.tanh(x)
         return x
