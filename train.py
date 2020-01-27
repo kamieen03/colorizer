@@ -42,10 +42,11 @@ class Trainer:
         self.model.train()
 
         for num, batch in enumerate(self.train_set):
-            loss_G, loss_D = self.model.optimize_parameters(batch)
+            loss_G_GAN, loss_G_L1, loss_D = self.model.optimize_parameters(batch)
             log = f'Train Epoch: [{epoch}/{EPOCHS}] ' + \
                   f'Batch: [{num+1}/{batch_num}] ' + \
-                  f'Loss G: {loss_G:.6f} ' + \
+                  f'Loss G_GAN: {loss_G_GAN:.6f} ' + \
+                  f'Loss G_L1: {loss_G_L1:.6f} ' + \
                   f'Loss D: {loss_D:.6f}' 
             print(log)
             f.write(log+'\n')

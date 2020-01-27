@@ -18,10 +18,10 @@ class Colorizer(torch.nn.Module):
             self.criterionGAN = GANLoss().cuda()
             self.criterionL1 = torch.nn.L1Loss().cuda()
             # and optimizers
-            #self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
-            #self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
-            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
-            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
+            self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
+            self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
+            #self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
+            #self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
 
 
     def forward(self, A):
@@ -49,11 +49,11 @@ class Colorizer(torch.nn.Module):
         loss_G_GAN = self.criterionGAN(pred_fake, True)
         # Second, G(A) = B
         loss_G_L1 = self.criterionL1(B, fake_b) * self.lambda_L1
-        print(B[:,1,:,:].mean(), fake_b[:,1,:,:].mean())
+        #print(B[:,1,:,:].mean(), fake_b[:,1,:,:].mean())
         # combine loss and calculate gradients
         loss_G = loss_G_GAN + loss_G_L1
         loss_G.backward()
-        return loss_G
+        return loss_G_GAN, loss_G_L1
 
     def optimize_parameters(self, batch):
         B = self.rgb2Lab(batch).cuda()
@@ -69,9 +69,9 @@ class Colorizer(torch.nn.Module):
         for param in self.netD.parameters():
             param.requires_grad = False
         self.optimizer_G.zero_grad()        # set G's gradients to zero
-        loss_G = self.backward_G(A, B, fake_b)                   # calculate graidents for G
+        loss_G_GAN, loss_G_L1 = self.backward_G(A, B, fake_b)                   # calculate graidents for G
         self.optimizer_G.step()             # udpate G's weights
-        return loss_G, loss_D
+        return loss_G_GAN, loss_G_L1, loss_D
 
 
     def validate_G(self, batch):
@@ -135,7 +135,7 @@ class GANLoss(torch.nn.Module):
         if not self.target_set:
             self.target_set = True
             self.target_ones = torch.ones(prediction.shape).cuda()
-            self.target_zeros = torch.ones(prediction.shape).cuda()
+            self.target_zeros = torch.zeros(prediction.shape).cuda()
         if target_is_real:
             target_tensor = self.target_ones
         else:
