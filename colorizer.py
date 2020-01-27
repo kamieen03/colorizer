@@ -19,10 +19,12 @@ class Colorizer(torch.nn.Module):
             self.criterionGAN = GANLoss().cuda()
             self.criterionL1 = torch.nn.L1Loss().cuda()
             # and optimizers
-            self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
-            self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
-            #self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
-            #self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
+            #self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
+            #self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
+            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
+            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
+            self.lr_scheduler_G = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_G, factor=0.3, patience=3) 
+            self.lr_scheduler_D = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_D, factor=0.3, patience=3) 
 
             summary(self.netG, (1,400,400))
             summary(self.netD, (4,400,400))

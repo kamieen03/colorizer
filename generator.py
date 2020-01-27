@@ -63,7 +63,7 @@ class Up(nn.Module):
         self.norm = norm
         self.dropout = dropout
 
-        self.up = nn.ConvTranspose2d(inc // 2, inc // 2, kernel_size=3, stride=2)
+        self.up = nn.Upsample(scale_factor=2, mode='nearest')
 
         self.conv1 = nn.Conv2d(inc, outc, kernel_size=3, padding=1, stride=1)
         self.norm1 = nn.BatchNorm2d(outc)
@@ -110,7 +110,6 @@ class SingleUp(nn.Module):
         self.norm1 = nn.BatchNorm2d(outc)
         self.r1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(outc, outc, kernel_size=3, padding=1, stride=1)
-        self.norm2 = nn.BatchNorm2d(outc)
         self.tanh = nn.Tanh()
 
     def forward(self, x):

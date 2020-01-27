@@ -6,7 +6,7 @@ import numpy as np
 from loader import Dataset
 from colorizer import Colorizer
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 CROP_SIZE = 400
 EPOCHS = 50
 MODEL_SAVE_PATH = 'colorizer.pth'
@@ -33,13 +33,16 @@ class Trainer:
             for epoch in range(1, EPOCHS+1): # count from one
                 self.train_single_epoch(epoch, f)
                 val = self.validate_single_epoch(epoch, f)
+        #        self.model.lr_scheduler_G.step(val)
+        #        self.model.lr_scheduler_D.step(val)
                 best_val = val
                 torch.save(self.model.state_dict(), MODEL_SAVE_PATH)
 
 
     def train_single_epoch(self, epoch, f):
         batch_num = len(self.train_set)      # number of batches in training epoch
-        self.model.train()
+        self.model.netG.train()
+        self.model.netD.train()
 
         for num, batch in enumerate(self.train_set):
             loss_G_GAN, loss_G_L1, loss_D = self.model.optimize_parameters(batch)
@@ -53,7 +56,8 @@ class Trainer:
 
     def validate_single_epoch(self, epoch, f):
         batch_num = len(self.val_set)      # number of batches in training epoch
-        self.model.eval()
+        self.model.netG.eval()
+        self.model.netD.eval()
         losses = []
 
         with torch.no_grad():
@@ -65,7 +69,7 @@ class Trainer:
                       f'Loss: {loss:.6f}'
                 print(log)
                 f.write(log+'\n')
-        return np.mean(np.array(losses))
+        return float(np.mean(np.array(losses)))
 
 
 def main():
