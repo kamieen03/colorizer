@@ -1,4 +1,5 @@
 import torch
+from torch.nn import init
 import cv2
 import numpy as np
 from torchsummary import summary
@@ -14,6 +15,8 @@ class Colorizer(torch.nn.Module):
 
         if TRAIN:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
             self.netD = PatchDiscriminator().cuda()
+            self._init_weights(self.netG)
+            self._init_weights(self.netD)
 
             # define loss functions
             self.criterionGAN = GANLoss().cuda()
@@ -21,8 +24,8 @@ class Colorizer(torch.nn.Module):
             # and optimizers
             #self.optimizer_G = torch.optim.SGD(self.netG.parameters(), 1e-3, momentum=0.9)
             #self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
-            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
-            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
+            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), betas=(0.5, 0.999), lr=2e-4)
+            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
             self.lr_scheduler_G = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_G, factor=0.3, patience=3) 
             self.lr_scheduler_D = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_D, factor=0.3, patience=3) 
 
@@ -128,6 +131,26 @@ class Colorizer(torch.nn.Module):
         img = img * 255
         img = img.astype('uint8')
         return img
+
+    def _init_weights(self, net, init_type='kaiming', init_gain=0.02):
+        def init_func(m):  # define the initialization function
+            classname = m.__class__.__name__
+            if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+                if init_type == 'normal':
+                    init.normal_(m.weight.data, 0.0, init_gain)
+                elif init_type == 'xavier':
+                    init.xavier_normal_(m.weight.data, gain=init_gain)
+                elif init_type == 'kaiming':
+                    init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
+                elif init_type == 'orthogonal':
+                    init.orthogonal_(m.weight.data, gain=init_gain)
+                if hasattr(m, 'bias') and m.bias is not None:
+                    init.constant_(m.bias.data, 0.0)
+            elif classname.find('BatchNorm2d') != -1:
+                init.normal_(m.weight.data, 1.0, init_gain)
+                init.constant_(m.bias.data, 0.0)
+
+        net.apply(init_func)
 
 class GANLoss(torch.nn.Module):
     def __init__(self):
