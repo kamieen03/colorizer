@@ -1,6 +1,7 @@
 import torch
 import cv2
 import numpy as np
+from torchsummary import summary
 
 from generator import UNet
 from discriminator import PatchDiscriminator
@@ -22,6 +23,9 @@ class Colorizer(torch.nn.Module):
             #self.optimizer_D = torch.optim.SGD(self.netD.parameters(), 1e-3, momentum=0.9)
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=1e-4)
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=1e-4)
+
+            summary(self.netG, (1,400,400))
+            summary(self.netD, (3,400,400))
 
 
     def forward(self, A):
