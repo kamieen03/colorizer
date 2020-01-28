@@ -8,9 +8,9 @@ class PatchDiscriminator(nn.Module):
         self.dropout = dropout
         
         layers = []
-        inc = 32 # one channel for L image and 3 for (generted or groundtruth) Lab image
+        inc = 32 # one channel for L image and 2 for A B channels
         outc = 32
-        layers.append(nn.Conv2d(4, 32, kernel_size=4, stride=2, padding=1))
+        layers.append(nn.Conv2d(3, 32, kernel_size=4, stride=2, padding=1))
         layers.append(nn.LeakyReLU(0.2, True))
         for _ in range(n-1):
             layers.append(nn.Conv2d(inc, outc, kernel_size=4, stride=2, padding=1))

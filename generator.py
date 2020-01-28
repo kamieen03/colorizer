@@ -17,7 +17,7 @@ class UNet(nn.Module):
         self.up2   = Up(8*nfc, 2*nfc, self.norm, self.dropout)
         self.up3   = Up(4*nfc, 1*nfc, self.norm, self.dropout)
         self.up4   = Up(2*nfc, 1*nfc, self.norm, self.dropout)
-        self.outc  = SingleUp(1*nfc, 3, self.norm, self.dropout)
+        self.outc  = SingleUp(1*nfc, 2, self.norm, self.dropout)
 
     def forward(self, x):
         x1 = self.down1(x)

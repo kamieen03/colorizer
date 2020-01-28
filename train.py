@@ -16,6 +16,7 @@ class Trainer:
         self.train_set = self.load_dataset('data/train')
         self.val_set = self.load_dataset('data/val')
         self.model = Colorizer().cuda()
+        #self.model.load_state_dict(torch.load(MODEL_SAVE_PATH))
 
     def load_dataset(self, path):
         """Load the datasets"""

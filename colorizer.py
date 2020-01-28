@@ -10,10 +10,11 @@ from discriminator import PatchDiscriminator
 class Colorizer(torch.nn.Module):
     def __init__(self, TRAIN=True):
         super(Colorizer, self).__init__()
-        self.netG = UNet().cuda()
+        self.netG = UNet()
         self.lambda_L1 = 100
 
         if TRAIN:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
+            self.netG.cuda()
             self.netD = PatchDiscriminator().cuda()
             self._init_weights(self.netG)
             self._init_weights(self.netD)
@@ -30,7 +31,7 @@ class Colorizer(torch.nn.Module):
             self.lr_scheduler_D = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_D, factor=0.3, patience=3) 
 
             summary(self.netG, (1,400,400))
-            summary(self.netD, (4,400,400))
+            summary(self.netD, (3,400,400))
 
 
     def forward(self, A):
@@ -64,8 +65,12 @@ class Colorizer(torch.nn.Module):
         return loss_G_GAN, loss_G_L1
 
     def optimize_parameters(self, batch):
-        B = self.rgb2Lab(batch).cuda()
-        A = B[:,:1,:,:].clone()
+        A, B = batch
+        A = A.cuda()
+        B = B.cuda()
+        #print(A.mean(), A.std())
+        #print(B[:,0,:,:].mean(), B[:,0,:,:].std())
+        #print(B[:,1,:,:].mean(), B[:,1,:,:].std())
         fake_b = self.forward(A)                   # compute fake images: G(A)
         # update D
         for param in self.netD.parameters():
@@ -84,8 +89,8 @@ class Colorizer(torch.nn.Module):
 
     def validate_G(self, batch):
         """Calculate GAN and L1 loss for the generator"""
-        B = self.rgb2Lab(batch).cuda()
-        A = B[:,:1,:,:]
+        A, B = batch
+        A.cuda(); B.cuda()
         fake_b = self.forward(A)                   # compute fake images: G(A)
 
         fake_AB = torch.cat((A, fake_b), 1)
@@ -96,41 +101,21 @@ class Colorizer(torch.nn.Module):
         # combine loss and calculate gradients
         return self.loss_G_GAN + self.loss_G_L1
 
-    def rgb2Lab(self, batch):
-        '''
-        Accepts torch tensor in float32 RGB BxCxHxW format.
-        Returns torch tensor in float32 Lab BxCxHxW format.
-        '''
-        if len(batch.shape) == 4:
-            batch = batch.numpy().transpose(0, 2, 3, 1)
-            b, h, w, c = batch.shape
-            assert c == 3
-            Lab_batch = np.zeros((b, h, w, 3))
-
-            for i in range(b):
-                Lab_batch[i] = cv2.cvtColor(batch[i], cv2.COLOR_RGB2LAB)
-            Lab_batch = Lab_batch.transpose(0,3,1,2)
-            assert Lab_batch.shape[1] == 3
-        else:
-            Lab_batch = cv2.cvtColor(batch, cv2.COLOR_RGB2LAB)
-            Lab_batch = Lab_batch.transpose(2,0,1)
-
-        Lab_batch = torch.from_numpy(Lab_batch) / 255.0
-        Lab_batch = Lab_batch.float()
-
-        return Lab_batch
-
-    def Lab2rgb(self, img):
-        '''
-        Accepts torch tensor in float32 Lab CxHxW format.
-        Returns np array in uint8 RGB HxWxC format. 
-        '''
-        img = img[0].numpy()*255
-        img = img.transpose(1,2,0)
-        img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
-        img = img * 255
-        img = img.astype('uint8')
-        return img
+    def Lab2rgb(self, L, AB):
+        """Convert an Lab tensor image to a RGB numpy output
+        Parameters:
+            L  (1-channel tensor array): L channel images (range: [-1, 1], torch tensor array)
+            AB (2-channel tensor array):  ab channel images (range: [-1, 1], torch tensor array)
+        Returns:
+            rgb (RGB numpy image): rgb output images  (range: [0, 255], numpy array)
+        """
+        AB2 = AB * 110.0
+        L2 = (L + 1.0) * 50.0
+        Lab = torch.cat([L2, AB2], dim=1)
+        Lab = Lab[0].data.cpu().float().numpy()
+        Lab = np.transpose(Lab.astype(np.float64), (1, 2, 0))
+        rgb = color.lab2rgb(Lab) * 255
+        return rgb
 
     def _init_weights(self, net, init_type='kaiming', init_gain=0.02):
         def init_func(m):  # define the initialization function

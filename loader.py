@@ -1,7 +1,9 @@
 import os
 from PIL import Image
+import numpy as np
 import torch.utils.data as data
 import torchvision.transforms as transforms
+from skimage import color
 
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".jpg", ".jpeg"])
@@ -21,25 +23,26 @@ class Dataset(data.Dataset):
             self.transform = transforms.Compose([
                                  transforms.Resize(fineSize),
                                  transforms.RandomCrop(fineSize),
-                                 transforms.RandomHorizontalFlip(),
-                                 transforms.ToTensor()
+                                 transforms.RandomHorizontalFlip()
                              ])
         else:
             self.transform = transforms.Compose([
                                  transforms.Resize(fineSize),
                                  transforms.RandomCrop(fineSize),
-                                 transforms.ToTensor()
                              ])
 
         self.test = test
 
     def __getitem__(self,index):
         dataPath = os.path.join(self.dataPath,self.image_list[index])
-
         Img = default_loader(dataPath)
         Img = self.transform(Img)
-
-        return Img
+        Img = np.array(Img)
+        lab = color.rgb2lab(Img).astype(np.float32)
+        lab_t = transforms.ToTensor()(lab)
+        A = lab_t[[0], ...] / 50.0 - 1.0
+        B = lab_t[[1, 2], ...] / 110.0
+        return A, B
 
     def __len__(self):
         return len(self.image_list)
