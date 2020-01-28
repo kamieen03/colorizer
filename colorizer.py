@@ -3,6 +3,8 @@ from torch.nn import init
 import cv2
 import numpy as np
 from torchsummary import summary
+from skimage import color
+from torchvision import transforms
 
 from generator import UNet
 from discriminator import PatchDiscriminator
@@ -115,7 +117,16 @@ class Colorizer(torch.nn.Module):
         Lab = Lab[0].data.cpu().float().numpy()
         Lab = np.transpose(Lab.astype(np.float64), (1, 2, 0))
         rgb = color.lab2rgb(Lab) * 255
+        rgb = rgb.astype('uint8')
         return rgb
+
+    def rgb2Lab(self, Img):
+        Img = np.array(Img)
+        lab = color.rgb2lab(Img).astype(np.float32)
+        lab_t = transforms.ToTensor()(lab)
+        L = lab_t[[0], ...] / 50.0 - 1.0
+        AB = lab_t[[1, 2], ...] / 110.0
+        return L, AB
 
     def _init_weights(self, net, init_type='kaiming', init_gain=0.02):
         def init_func(m):  # define the initialization function
